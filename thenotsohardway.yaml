@@ -77,12 +77,16 @@ Resources:
         - AssociatePublicIpAddress: "true"
           SubnetId: 
             Ref: "clusterSubnet"
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          GroupSet: 
+            - Ref: "nodeSecurityGroup"
       AvailabilityZone: us-east-1a
       ImageId: ami-042e8287309f5df03 
       InstanceType: t2.medium
       KeyName: !Ref SSHKey
-      SecurityGroups:
-        - !Ref nodeSecurityGroup
+      # SecurityGroups:
+      #   - !Ref nodeSecurityGroup
       # we install our web server with user data
       UserData: 
         Fn::Base64: |
@@ -99,13 +103,10 @@ Resources:
             sudo sysctl --system
 
             #installing container runtime
-            sudo apt-get -y update
-            sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+            sudo apt-get -y update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
             echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null            
-            sudo apt-get -y update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-            sudo mkdir /etc/docker
+            sudo apt-get -y update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
             cat <<EOF | sudo tee /etc/docker/daemon.json
             {
               "exec-opts": ["native.cgroupdriver=systemd"],
@@ -116,17 +117,12 @@ Resources:
               "storage-driver": "overlay2"
             }
             EOF            
-            sudo systemctl enable docker
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
+            sudo systemctl enable docker && sudo systemctl daemon-reload && sudo systemctl restart docker
 
             #installing kubeadm, kubelet and kubectl
-            sudo apt-get -y update
             sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg 
             echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt-get -y update
-            sudo apt-get install -y kubelet kubeadm kubectl
-            sudo apt-mark hold kubelet kubeadm kubectl
+            sudo apt-get -y update && sudo apt-get install -y kubelet kubeadm kubectl && sudo apt-mark hold kubelet kubeadm kubectl
 
             #network Addon "weave"
             kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
@@ -137,7 +133,10 @@ Resources:
             sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
             sudo chown $(id -u):$(id -g) $HOME/.kube/config         
             kubeadm token create --print-join-command > join.txt
-            
+      Tags: 
+        - Key: "Name"
+          Value: "Kubemaster"
+
   kubenode01:
     Type: AWS::EC2::Instance
     Properties:
@@ -145,12 +144,16 @@ Resources:
         - AssociatePublicIpAddress: "true"
           SubnetId: 
             Ref: "clusterSubnet"
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          GroupSet: 
+            - Ref: "nodeSecurityGroup"
       AvailabilityZone: us-east-1a
       ImageId: ami-042e8287309f5df03 
-      InstanceType: t2.medium
+      InstanceType: t2.micro
       KeyName: !Ref SSHKey
-      SecurityGroups:
-        - !Ref nodeSecurityGroup
+      # SecurityGroups:
+      #   - !Ref nodeSecurityGroup
       # we install our web server with user data
       UserData: 
         Fn::Base64: |
@@ -167,13 +170,10 @@ Resources:
             sudo sysctl --system
 
             #installing container runtime
-            sudo apt-get -y update
-            sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+            sudo apt-get -y update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
             echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null            
-            sudo apt-get -y update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-            sudo mkdir /etc/docker
+            sudo apt-get -y update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
             cat <<EOF | sudo tee /etc/docker/daemon.json
             {
               "exec-opts": ["native.cgroupdriver=systemd"],
@@ -183,19 +183,17 @@ Resources:
               },
               "storage-driver": "overlay2"
             }
-            EOF            
-            sudo systemctl enable docker
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
+            EOF
+
+            sudo systemctl enable docker && sudo systemctl daemon-reload && sudo systemctl restart docker
             
             #installing kubeadm, kubelet and kubectl
-            sudo apt-get -y update
             sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg 
             echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt-get -y update
-            sudo apt-get install -y kubelet kubeadm kubectl
-            sudo apt-mark hold kubelet kubeadm kubectl 
-
+            sudo apt-get -y update && sudo apt-get install -y kubelet kubeadm kubectl && sudo apt-mark hold kubelet kubeadm kubectl 
+      Tags: 
+        - Key: "Name"
+          Value: "Kubenode01"
 
   kubenode02:
     Type: AWS::EC2::Instance
@@ -204,12 +202,16 @@ Resources:
         - AssociatePublicIpAddress: "true"
           SubnetId: 
             Ref: "clusterSubnet"
+          DeviceIndex: '0'
+          DeleteOnTermination: 'true'
+          GroupSet: 
+            - Ref: "nodeSecurityGroup"
       AvailabilityZone: us-east-1a
       ImageId: ami-042e8287309f5df03 
-      InstanceType: t2.medium
+      InstanceType: t2.micro
       KeyName: !Ref SSHKey
-      SecurityGroups:
-        - !Ref nodeSecurityGroup
+      # SecurityGroups:
+      #   - !Ref nodeSecurityGroup
       # we install our web server with user data
       UserData: 
         Fn::Base64: |
@@ -226,13 +228,10 @@ Resources:
             sudo sysctl --system
 
             #installing container runtime
-            sudo apt-get -y update
-            sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
+            sudo apt-get -y update && sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
             curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
             echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null            
-            sudo apt-get -y update
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-            sudo mkdir /etc/docker
+            sudo apt-get -y update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io
             cat <<EOF | sudo tee /etc/docker/daemon.json
             {
               "exec-opts": ["native.cgroupdriver=systemd"],
@@ -243,23 +242,22 @@ Resources:
               "storage-driver": "overlay2"
             }
             EOF            
-            sudo systemctl enable docker
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
+            sudo systemctl enable docker && sudo systemctl daemon-reload && sudo systemctl restart docker
             
             #installing kubeadm, kubelet and kubectl
-            sudo apt-get -y update
             sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg 
             echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt-get -y update
-            sudo apt-get install -y kubelet kubeadm kubectl
-            sudo apt-mark hold kubelet kubeadm kubectl                
-
+            sudo apt-get -y update && sudo apt-get install -y kubelet kubeadm kubectl && sudo apt-mark hold kubelet kubeadm kubectl                
+      Tags: 
+        - Key: "Name"
+          Value: "Kubenode02"
   # kubenode security group
   nodeSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: SSH, HTTP, Kubernetes API server, etcd server client API & kubelet API
+      VpcId:
+         Ref: clusterVPC
       SecurityGroupIngress:
       - CidrIp: 0.0.0.0/0
         FromPort: 22
